@@ -1,6 +1,5 @@
 #!python3
 import freetype
-import zlib
 import sys
 import re
 import math
@@ -36,6 +35,12 @@ intervals = [
     ### Latin Extended-A ###
     # Eastern European and Baltic languages
     (0x0100, 0x017F),
+    ### Latin Extended-B ###
+    # Additional Eastern European characters
+    (0x0180, 0x024F),
+    ### Vietnamese Extended ###
+    # Vietnamese characters (1EA0-1EF9)
+    (0x1EA0, 0x1EF9),
     ### General Punctuation (core subset) ###
     # Smart quotes, en dash, em dash, ellipsis, NO-BREAK SPACE
     (0x2000, 0x206F),
@@ -52,9 +57,9 @@ intervals = [
     ### Greek & Coptic ###
     # Used in science, maths, philosophy, some academic texts
     # (0x0370, 0x03FF),
-    ### Cyrillic ###
+    ### Cyrillic - REMOVED to save space ###
     # Russian, Ukrainian, Bulgarian, etc.
-    (0x0400, 0x04FF),
+    # (0x0400, 0x04FF),
     ### Math Symbols (common subset) ###
     # General math operators
     (0x2200, 0x22FF),
@@ -242,10 +247,19 @@ for i_start, i_end in intervals:
 
         # Build output data
         packed = bytes(pixels)
+        
+        # Calculate advance_x - ensure it's at least wide enough to not overlap
+        # For characters with diacritics (like Vietnamese), the glyph may extend
+        # beyond the standard advance width, causing overlap with the next character
+        raw_advance_x = norm_floor(face.glyph.advance.x)
+        # Ensure advance_x is at least left + width + 1 (add 1 pixel spacing for safety)
+        min_advance_x = face.glyph.bitmap_left + bitmap.width + 1
+        advance_x = max(raw_advance_x, min_advance_x)
+        
         glyph = GlyphProps(
             width = bitmap.width,
             height = bitmap.rows,
-            advance_x = norm_floor(face.glyph.advance.x),
+            advance_x = advance_x,
             left = face.glyph.bitmap_left,
             top = face.glyph.bitmap_top,
             data_length = len(packed),
