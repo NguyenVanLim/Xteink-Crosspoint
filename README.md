@@ -1,22 +1,42 @@
-# CrossPoint Reader
+# mrslim Firmware - Custom cho X-Teink X4
 
-Firmware for the **Xteink X4** e-paper display reader (unaffiliated with Xteink).
+Firmware custom cho **Xteink X4** e-paper display reader, dựa trên nền **Crosspoint 0.16.0 dev**.
 Built using **PlatformIO** and targeting the **ESP32-C3** microcontroller.
 
-CrossPoint Reader is a purpose-built firmware designed to be a drop-in, fully open-source replacement for the official 
-Xteink firmware. It aims to match or improve upon the standard EPUB reading experience.
+mrslim Firmware là một bản custom được chế lại từ CrossPoint Reader nhằm mang lại trải nghiệm đọc sách EPUB tốt hơn với hỗ trợ đầy đủ Tiếng Việt và nhiều tính năng bổ sung.
 
 ![](./docs/images/cover.jpg)
 
 > [!WARNING]
-> **This is a Vietnamese fork of CrossPoint Reader.**
+> **CẢNH BÁO QUAN TRỌNG:**
 >
-> - **Upstream Source:** [crosspoint-reader/crosspoint-reader](https://github.com/crosspoint-reader/crosspoint-reader)
+> - **Miễn trừ trách nhiệm:** Vì là bản vọc cá nhân, em xin phép KHÔNG CHỊU TRÁCH NHIỆM nếu máy gặp lỗi hoặc có vấn đề gì xảy ra khi anh em cài đặt. Anh em cân nhắc kỹ trước khi lên nhé!
+> - **Rủi ro:** Đây là bản em tự vọc cá nhân và chưa test kỹ, có thể phát sinh lỗi trong quá trình sử dụng.
+> - **Nhược điểm:** Do em nhồi nhét thêm tính năng nên giao diện sẽ lag hơn bản gốc một chút.
 >
-> - The `master` branch stays close to the upstream version with minimal changes, primarily for Vietnamese language support.
-> - The `dev` branch contains experimental features and customizations. Some code in the dev branch is AI-generated and may not be fully optimized or thoroughly tested.
-> - **Prereleases** are built from the `dev` branch and are intended for testing purposes only.
-> - **Regular users should use the [official releases](https://github.com/danoooob/crosspoint-reader-vi/releases) from the upstream repository** for the most stable experience.
+> **Upstream Source:** [crosspoint-reader/crosspoint-reader](https://github.com/crosspoint-reader/crosspoint-reader)
+
+## Giới thiệu
+
+Chào mọi người, sau mấy ngày rảnh rỗi vọc vạch, em có chế lại chút firmware cho X-Teink X4 dựa trên nền Crosspoint 0.16.0 dev. Em chia sẻ lên đây cho anh em nào thích trải nghiệm cái mới.
+
+## ✨ Những tính năng em đã thêm vào:
+
+- **Update giao diện Tiếng Việt:** Dễ nhìn, dễ dùng hơn hẳn cho người Việt.
+- **Update thanh tiến trình đọc:** Theo dõi tiến độ đọc sách trực quan.
+- **Giao diện trực quan:** Nhìn hiện đại và thoáng hơn bản cũ.
+- **Tủ sách hiện Cover:** Đã hiện được bìa sách cho đẹp đội hình.
+- **Hỗ trợ ảnh trong EPUB:** Xem được ảnh minh họa trong sách ngon lành.
+
+## 💻 Góc hỗ trợ & Giao lưu:
+
+### Về Firmware
+Anh em muốn thêm chức năng gì cứ comment bên dưới nhé, em sẽ tìm hiểu để vọc vạch thêm cho các bản sau.
+
+### Về Website
+Tiện đây em cũng đang nhận code Website cho cá nhân và doanh nghiệp. Anh chị em nào cần làm web bán hàng, landing page hay web công ty thì cứ ới em nhé. Em hỗ trợ nhiệt tình, giá "người nhà" cho anh em ạ!
+
+## Motivation
 
 ## Motivation
 
@@ -25,7 +45,7 @@ customisation. The **Xteink X4** is an affordable, e-paper device, however the o
 CrossPoint exists partly as a fun side-project and partly to open up the ecosystem and truely unlock the device's
 potential.
 
-CrossPoint Reader aims to:
+mrslim Firmware aims to:
 * Provide a **fully open-source alternative** to the official firmware.
 * Offer a **document reader** capable of handling EPUB content on constrained hardware.
 * Support **customisable font, layout, and display** options.
