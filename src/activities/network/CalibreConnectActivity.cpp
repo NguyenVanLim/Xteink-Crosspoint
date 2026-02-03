@@ -11,11 +11,11 @@
 #include "fontIds.h"
 
 namespace {
-constexpr const char* HOSTNAME = "crosspoint";
-}  // namespace
+constexpr const char *HOSTNAME = "crosspoint";
+} // namespace
 
-void CalibreConnectActivity::taskTrampoline(void* param) {
-  auto* self = static_cast<CalibreConnectActivity*>(param);
+void CalibreConnectActivity::taskTrampoline(void *param) {
+  auto *self = static_cast<CalibreConnectActivity *>(param);
   self->displayTaskLoop();
 }
 
@@ -36,15 +36,16 @@ void CalibreConnectActivity::onEnter() {
   exitRequested = false;
 
   xTaskCreate(&CalibreConnectActivity::taskTrampoline, "CalibreConnectTask",
-              2048,               // Stack size
-              this,               // Parameters
-              1,                  // Priority
-              &displayTaskHandle  // Task handle
+              2048,              // Stack size
+              this,              // Parameters
+              1,                 // Priority
+              &displayTaskHandle // Task handle
   );
 
   if (WiFi.status() != WL_CONNECTED) {
-    enterNewActivity(new WifiSelectionActivity(renderer, mappedInput,
-                                               [this](const bool connected) { onWifiSelectionComplete(connected); }));
+    enterNewActivity(new WifiSelectionActivity(
+        renderer, mappedInput,
+        [this](const bool connected) { onWifiSelectionComplete(connected); }));
   } else {
     connectedIP = WiFi.localIP().toString().c_str();
     connectedSSID = WiFi.SSID().c_str();
@@ -81,7 +82,8 @@ void CalibreConnectActivity::onWifiSelectionComplete(const bool connected) {
   }
 
   if (subActivity) {
-    connectedIP = static_cast<WifiSelectionActivity*>(subActivity.get())->getConnectedIP();
+    connectedIP = static_cast<WifiSelectionActivity *>(subActivity.get())
+                      ->getConnectedIP();
   } else {
     connectedIP = WiFi.localIP().toString().c_str();
   }
@@ -96,7 +98,8 @@ void CalibreConnectActivity::startWebServer() {
 
   if (MDNS.begin(HOSTNAME)) {
     // mDNS is optional for the Calibre plugin but still helpful for users.
-    Serial.printf("[%lu] [CAL] mDNS started: http://%s.local/\n", millis(), HOSTNAME);
+    Serial.printf("[%lu] [CAL] mDNS started: http://%s.local/\n", millis(),
+                  HOSTNAME);
   }
 
   webServer.reset(new CrossPointWebServer());
@@ -129,9 +132,11 @@ void CalibreConnectActivity::loop() {
   }
 
   if (webServer && webServer->isRunning()) {
-    const unsigned long timeSinceLastHandleClient = millis() - lastHandleClientTime;
+    const unsigned long timeSinceLastHandleClient =
+        millis() - lastHandleClientTime;
     if (lastHandleClientTime > 0 && timeSinceLastHandleClient > 100) {
-      Serial.printf("[%lu] [CAL] WARNING: %lu ms gap since last handleClient\n", millis(), timeSinceLastHandleClient);
+      Serial.printf("[%lu] [CAL] WARNING: %lu ms gap since last handleClient\n",
+                    millis(), timeSinceLastHandleClient);
     }
 
     esp_task_wdt_reset();
@@ -154,7 +159,8 @@ void CalibreConnectActivity::loop() {
     const auto status = webServer->getWsUploadStatus();
     bool changed = false;
     if (status.inProgress) {
-      if (status.received != lastProgressReceived || status.total != lastProgressTotal ||
+      if (status.received != lastProgressReceived ||
+          status.total != lastProgressTotal ||
           status.filename != currentUploadName) {
         lastProgressReceived = status.received;
         lastProgressTotal = status.total;
@@ -211,9 +217,13 @@ void CalibreConnectActivity::render() const {
   renderer.clearScreen();
   const auto pageHeight = renderer.getScreenHeight();
   if (state == CalibreConnectState::SERVER_STARTING) {
-    renderer.drawCenteredText(UI_12_FONT_ID, pageHeight / 2 - 20, "Starting Calibre...", true, EpdFontFamily::BOLD);
+    renderer.drawCenteredText(UI_12_FONT_ID, pageHeight / 2 - 20,
+                              "Đang khởi động Calibre...", true,
+                              EpdFontFamily::BOLD);
   } else if (state == CalibreConnectState::ERROR) {
-    renderer.drawCenteredText(UI_12_FONT_ID, pageHeight / 2 - 20, "Calibre setup failed", true, EpdFontFamily::BOLD);
+    renderer.drawCenteredText(UI_12_FONT_ID, pageHeight / 2 - 20,
+                              "Lỗi thiết lập Calibre", true,
+                              EpdFontFamily::BOLD);
   }
   renderer.displayBuffer();
 }
@@ -223,31 +233,40 @@ void CalibreConnectActivity::renderServerRunning() const {
   constexpr int SMALL_SPACING = 20;
   constexpr int SECTION_SPACING = 40;
   constexpr int TOP_PADDING = 14;
-  renderer.drawCenteredText(UI_12_FONT_ID, 15, "Connect to Calibre", true, EpdFontFamily::BOLD);
+  renderer.drawCenteredText(UI_12_FONT_ID, 15, "Kết nối với Calibre", true,
+                            EpdFontFamily::BOLD);
 
   int y = 55 + TOP_PADDING;
-  renderer.drawCenteredText(UI_10_FONT_ID, y, "Network", true, EpdFontFamily::BOLD);
+  renderer.drawCenteredText(UI_10_FONT_ID, y, "Mạng", true,
+                            EpdFontFamily::BOLD);
   y += LINE_SPACING;
-  std::string ssidInfo = "Network: " + connectedSSID;
+  std::string ssidInfo = "Mạng: " + connectedSSID;
   if (ssidInfo.length() > 28) {
     ssidInfo.replace(25, ssidInfo.length() - 25, "...");
   }
   renderer.drawCenteredText(UI_10_FONT_ID, y, ssidInfo.c_str());
-  renderer.drawCenteredText(UI_10_FONT_ID, y + LINE_SPACING, ("IP: " + connectedIP).c_str());
+  renderer.drawCenteredText(UI_10_FONT_ID, y + LINE_SPACING,
+                            ("Địa chỉ IP: " + connectedIP).c_str());
 
   y += LINE_SPACING * 2 + SECTION_SPACING;
-  renderer.drawCenteredText(UI_10_FONT_ID, y, "Setup", true, EpdFontFamily::BOLD);
+  renderer.drawCenteredText(UI_10_FONT_ID, y, "Thiết lập", true,
+                            EpdFontFamily::BOLD);
   y += LINE_SPACING;
-  renderer.drawCenteredText(SMALL_FONT_ID, y, "1) Install CrossPoint Reader plugin");
-  renderer.drawCenteredText(SMALL_FONT_ID, y + SMALL_SPACING, "2) Be on the same WiFi network");
-  renderer.drawCenteredText(SMALL_FONT_ID, y + SMALL_SPACING * 2, "3) In Calibre: \"Send to device\"");
-  renderer.drawCenteredText(SMALL_FONT_ID, y + SMALL_SPACING * 3, "Keep this screen open while sending");
+  renderer.drawCenteredText(SMALL_FONT_ID, y,
+                            "1) Cài đặt plugin CrossPoint Reader trên Calibre");
+  renderer.drawCenteredText(SMALL_FONT_ID, y + SMALL_SPACING,
+                            "2) Kết nối cùng mạng WiFi");
+  renderer.drawCenteredText(SMALL_FONT_ID, y + SMALL_SPACING * 2,
+                            "3) Trên Calibre: Chọn \"Gửi đến thiết bị\"");
+  renderer.drawCenteredText(SMALL_FONT_ID, y + SMALL_SPACING * 3,
+                            "Giữ màn hình này mở trong khi gửi");
 
   y += SMALL_SPACING * 3 + SECTION_SPACING;
-  renderer.drawCenteredText(UI_10_FONT_ID, y, "Status", true, EpdFontFamily::BOLD);
+  renderer.drawCenteredText(UI_10_FONT_ID, y, "Trạng thái", true,
+                            EpdFontFamily::BOLD);
   y += LINE_SPACING;
   if (lastProgressTotal > 0 && lastProgressReceived <= lastProgressTotal) {
-    std::string label = "Receiving";
+    std::string label = "Đang nhận";
     if (!currentUploadName.empty()) {
       label += ": " + currentUploadName;
       if (label.length() > 34) {
@@ -258,19 +277,21 @@ void CalibreConnectActivity::renderServerRunning() const {
     constexpr int barWidth = 300;
     constexpr int barHeight = 16;
     constexpr int barX = (480 - barWidth) / 2;
-    ScreenComponents::drawProgressBar(renderer, barX, y + 22, barWidth, barHeight, lastProgressReceived,
+    ScreenComponents::drawProgressBar(renderer, barX, y + 22, barWidth,
+                                      barHeight, lastProgressReceived,
                                       lastProgressTotal);
     y += 40;
   }
 
   if (lastCompleteAt > 0 && (millis() - lastCompleteAt) < 6000) {
-    std::string msg = "Received: " + lastCompleteName;
+    std::string msg = "Đã nhận: " + lastCompleteName;
     if (msg.length() > 36) {
       msg.replace(33, msg.length() - 33, "...");
     }
     renderer.drawCenteredText(SMALL_FONT_ID, y, msg.c_str());
   }
 
-  const auto labels = mappedInput.mapLabels("« Exit", "", "", "");
-  renderer.drawButtonHints(UI_10_FONT_ID, labels.btn1, labels.btn2, labels.btn3, labels.btn4);
+  const auto labels = mappedInput.mapLabels("« Thoát", "", "", "");
+  renderer.drawButtonHints(UI_10_FONT_ID, labels.btn1, labels.btn2, labels.btn3,
+                           labels.btn4);
 }

@@ -11,6 +11,8 @@ Xteink firmware. It aims to match or improve upon the standard EPUB reading expe
 > [!WARNING]
 > **This is a Vietnamese fork of CrossPoint Reader.**
 >
+> - **Upstream Source:** [crosspoint-reader/crosspoint-reader](https://github.com/crosspoint-reader/crosspoint-reader)
+>
 > - The `master` branch stays close to the upstream version with minimal changes, primarily for Vietnamese language support.
 > - The `dev` branch contains experimental features and customizations. Some code in the dev branch is AI-generated and may not be fully optimized or thoroughly tested.
 > - **Prereleases** are built from the `dev` branch and are intended for testing purposes only.
@@ -34,7 +36,7 @@ This project is **not affiliated with Xteink**; it's built as a community projec
 ## Features & Usage
 
 - [x] EPUB parsing and rendering (EPUB 2 and EPUB 3)
-- [ ] Image support within EPUB
+- [x] Image support within EPUB
 - [x] Saved reading position
 - [x] File explorer with file picker
   - [x] Basic EPUB picker from root directory

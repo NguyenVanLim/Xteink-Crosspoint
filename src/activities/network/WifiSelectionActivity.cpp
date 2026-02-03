@@ -10,8 +10,8 @@
 #include "activities/util/KeyboardEntryActivity.h"
 #include "fontIds.h"
 
-void WifiSelectionActivity::taskTrampoline(void* param) {
-  auto* self = static_cast<WifiSelectionActivity*>(param);
+void WifiSelectionActivity::taskTrampoline(void *param) {
+  auto *self = static_cast<WifiSelectionActivity *>(param);
   self->displayTaskLoop();
 }
 
@@ -20,7 +20,8 @@ void WifiSelectionActivity::onEnter() {
 
   renderingMutex = xSemaphoreCreateMutex();
 
-  // Load saved WiFi credentials - SD card operations need lock as we use SPI for both
+  // Load saved WiFi credentials - SD card operations need lock as we use SPI
+  // for both
   xSemaphoreTake(renderingMutex, portMAX_DELAY);
   WIFI_STORE.loadFromFile();
   xSemaphoreGive(renderingMutex);
@@ -41,18 +42,18 @@ void WifiSelectionActivity::onEnter() {
   uint8_t mac[6];
   WiFi.macAddress(mac);
   char macStr[32];
-  snprintf(macStr, sizeof(macStr), "MAC address: %02x-%02x-%02x-%02x-%02x-%02x", mac[0], mac[1], mac[2], mac[3], mac[4],
-           mac[5]);
+  snprintf(macStr, sizeof(macStr), "Địa chỉ MAC: %02x-%02x-%02x-%02x-%02x-%02x",
+           mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
   cachedMacAddress = std::string(macStr);
 
   // Trigger first update to show scanning message
   updateRequired = true;
 
   xTaskCreate(&WifiSelectionActivity::taskTrampoline, "WifiSelectionTask",
-              4096,               // Stack size (larger for WiFi operations)
-              this,               // Parameters
-              1,                  // Priority
-              &displayTaskHandle  // Task handle
+              4096,              // Stack size (larger for WiFi operations)
+              this,              // Parameters
+              1,                 // Priority
+              &displayTaskHandle // Task handle
   );
 
   // Start WiFi scan
@@ -62,22 +63,28 @@ void WifiSelectionActivity::onEnter() {
 void WifiSelectionActivity::onExit() {
   Activity::onExit();
 
-  Serial.printf("[%lu] [WIFI] [MEM] Free heap at onExit start: %d bytes\n", millis(), ESP.getFreeHeap());
+  Serial.printf("[%lu] [WIFI] [MEM] Free heap at onExit start: %d bytes\n",
+                millis(), ESP.getFreeHeap());
 
   // Stop any ongoing WiFi scan
   Serial.printf("[%lu] [WIFI] Deleting WiFi scan...\n", millis());
   WiFi.scanDelete();
-  Serial.printf("[%lu] [WIFI] [MEM] Free heap after scanDelete: %d bytes\n", millis(), ESP.getFreeHeap());
+  Serial.printf("[%lu] [WIFI] [MEM] Free heap after scanDelete: %d bytes\n",
+                millis(), ESP.getFreeHeap());
 
-  // Note: We do NOT disconnect WiFi here - the parent activity (CrossPointWebServerActivity)
-  // manages WiFi connection state. We just clean up the scan and task.
+  // Note: We do NOT disconnect WiFi here - the parent activity
+  // (CrossPointWebServerActivity) manages WiFi connection state. We just clean
+  // up the scan and task.
 
   // Acquire mutex before deleting task to ensure task isn't using it
   // This prevents hangs/crashes if the task holds the mutex when deleted
-  Serial.printf("[%lu] [WIFI] Acquiring rendering mutex before task deletion...\n", millis());
+  Serial.printf(
+      "[%lu] [WIFI] Acquiring rendering mutex before task deletion...\n",
+      millis());
   xSemaphoreTake(renderingMutex, portMAX_DELAY);
 
-  // Delete the display task (we now hold the mutex, so task is blocked if it needs it)
+  // Delete the display task (we now hold the mutex, so task is blocked if it
+  // needs it)
   Serial.printf("[%lu] [WIFI] Deleting display task...\n", millis());
   if (displayTaskHandle) {
     vTaskDelete(displayTaskHandle);
@@ -91,7 +98,8 @@ void WifiSelectionActivity::onExit() {
   renderingMutex = nullptr;
   Serial.printf("[%lu] [WIFI] Mutex deleted\n", millis());
 
-  Serial.printf("[%lu] [WIFI] [MEM] Free heap at onExit end: %d bytes\n", millis(), ESP.getFreeHeap());
+  Serial.printf("[%lu] [WIFI] [MEM] Free heap at onExit end: %d bytes\n",
+                millis(), ESP.getFreeHeap());
 }
 
 void WifiSelectionActivity::startWifiScan() {
@@ -105,7 +113,7 @@ void WifiSelectionActivity::startWifiScan() {
   delay(100);
 
   // Start async scan
-  WiFi.scanNetworks(true);  // true = async scan
+  WiFi.scanNetworks(true); // true = async scan
 }
 
 void WifiSelectionActivity::processWifiScanResults() {
@@ -150,19 +158,22 @@ void WifiSelectionActivity::processWifiScanResults() {
 
   // Convert map to vector
   networks.clear();
-  for (const auto& pair : uniqueNetworks) {
+  for (const auto &pair : uniqueNetworks) {
     // cppcheck-suppress useStlAlgorithm
     networks.push_back(pair.second);
   }
 
   // Sort by signal strength (strongest first)
   std::sort(networks.begin(), networks.end(),
-            [](const WifiNetworkInfo& a, const WifiNetworkInfo& b) { return a.rssi > b.rssi; });
+            [](const WifiNetworkInfo &a, const WifiNetworkInfo &b) {
+              return a.rssi > b.rssi;
+            });
 
   // Show networks with PW first
-  std::sort(networks.begin(), networks.end(), [](const WifiNetworkInfo& a, const WifiNetworkInfo& b) {
-    return a.hasSavedPassword && !b.hasSavedPassword;
-  });
+  std::sort(networks.begin(), networks.end(),
+            [](const WifiNetworkInfo &a, const WifiNetworkInfo &b) {
+              return a.hasSavedPassword && !b.hasSavedPassword;
+            });
 
   WiFi.scanDelete();
   state = WifiSelectionState::NETWORK_LIST;
@@ -175,20 +186,20 @@ void WifiSelectionActivity::selectNetwork(const int index) {
     return;
   }
 
-  const auto& network = networks[index];
+  const auto &network = networks[index];
   selectedSSID = network.ssid;
   selectedRequiresPassword = network.isEncrypted;
   usedSavedPassword = false;
   enteredPassword.clear();
 
   // Check if we have saved credentials for this network
-  const auto* savedCred = WIFI_STORE.findCredential(selectedSSID);
+  const auto *savedCred = WIFI_STORE.findCredential(selectedSSID);
   if (savedCred && !savedCred->password.empty()) {
     // Use saved password - connect directly
     enteredPassword = savedCred->password;
     usedSavedPassword = true;
-    Serial.printf("[%lu] [WiFi] Using saved password for %s, length: %zu\n", millis(), selectedSSID.c_str(),
-                  enteredPassword.size());
+    Serial.printf("[%lu] [WiFi] Using saved password for %s, length: %zu\n",
+                  millis(), selectedSSID.c_str(), enteredPassword.size());
     attemptConnection();
     return;
   }
@@ -199,12 +210,12 @@ void WifiSelectionActivity::selectNetwork(const int index) {
     // Don't allow screen updates while changing activity
     xSemaphoreTake(renderingMutex, portMAX_DELAY);
     enterNewActivity(new KeyboardEntryActivity(
-        renderer, mappedInput, "Enter WiFi Password",
-        "",     // No initial text
-        50,     // Y position
-        64,     // Max password length
-        false,  // Show password by default (hard keyboard to use)
-        [this](const std::string& text) {
+        renderer, mappedInput, "Nhập mật khẩu WiFi",
+        "",    // No initial text
+        50,    // Y position
+        64,    // Max password length
+        false, // Show password by default (hard keyboard to use)
+        [this](const std::string &text) {
           enteredPassword = text;
           exitActivity();
         },
@@ -255,20 +266,22 @@ void WifiSelectionActivity::checkConnectionStatus() {
     // Otherwise, immediately complete so parent can start web server
     if (!usedSavedPassword && !enteredPassword.empty()) {
       state = WifiSelectionState::SAVE_PROMPT;
-      savePromptSelection = 0;  // Default to "Yes"
+      savePromptSelection = 0; // Default to "Yes"
       updateRequired = true;
     } else {
       // Using saved password or open network - complete immediately
-      Serial.printf("[%lu] [WIFI] Connected with saved/open credentials, completing immediately\n", millis());
+      Serial.printf("[%lu] [WIFI] Connected with saved/open credentials, "
+                    "completing immediately\n",
+                    millis());
       onComplete(true);
     }
     return;
   }
 
   if (status == WL_CONNECT_FAILED || status == WL_NO_SSID_AVAIL) {
-    connectionError = "Connection failed";
+    connectionError = "Kết nối thất bại";
     if (status == WL_NO_SSID_AVAIL) {
-      connectionError = "Network not found";
+      connectionError = "Không tìm thấy mạng";
     }
     state = WifiSelectionState::CONNECTION_FAILED;
     updateRequired = true;
@@ -278,7 +291,7 @@ void WifiSelectionActivity::checkConnectionStatus() {
   // Check for timeout
   if (millis() - connectionStartTime > CONNECTION_TIMEOUT_MS) {
     WiFi.disconnect();
-    connectionError = "Connection timeout";
+    connectionError = "Hết thời gian kết nối";
     state = WifiSelectionState::CONNECTION_FAILED;
     updateRequired = true;
     return;
@@ -361,7 +374,9 @@ void WifiSelectionActivity::loop() {
         xSemaphoreGive(renderingMutex);
         // Update the network list to reflect the change
         const auto network = find_if(networks.begin(), networks.end(),
-                                     [this](const WifiNetworkInfo& net) { return net.ssid == selectedSSID; });
+                                     [this](const WifiNetworkInfo &net) {
+                                       return net.ssid == selectedSSID;
+                                     });
         if (network != networks.end()) {
           network->hasSavedPassword = false;
         }
@@ -377,7 +392,8 @@ void WifiSelectionActivity::loop() {
     return;
   }
 
-  // Handle connected state (should not normally be reached - connection completes immediately)
+  // Handle connected state (should not normally be reached - connection
+  // completes immediately)
   if (state == WifiSelectionState::CONNECTED) {
     // Safety fallback - immediately complete
     onComplete(true);
@@ -391,7 +407,7 @@ void WifiSelectionActivity::loop() {
       // If we used saved credentials, offer to forget the network
       if (usedSavedPassword) {
         state = WifiSelectionState::FORGET_PROMPT;
-        forgetPromptSelection = 0;  // Default to "Cancel"
+        forgetPromptSelection = 0; // Default to "Cancel"
       } else {
         // Go back to network list on failure
         state = WifiSelectionState::NETWORK_LIST;
@@ -428,7 +444,8 @@ void WifiSelectionActivity::loop() {
       }
     } else if (mappedInput.wasPressed(MappedInputManager::Button::Down) ||
                mappedInput.wasPressed(MappedInputManager::Button::Right)) {
-      if (!networks.empty() && selectedNetworkIndex < static_cast<int>(networks.size()) - 1) {
+      if (!networks.empty() &&
+          selectedNetworkIndex < static_cast<int>(networks.size()) - 1) {
         selectedNetworkIndex++;
         updateRequired = true;
       }
@@ -436,21 +453,22 @@ void WifiSelectionActivity::loop() {
   }
 }
 
-std::string WifiSelectionActivity::getSignalStrengthIndicator(const int32_t rssi) const {
+std::string
+WifiSelectionActivity::getSignalStrengthIndicator(const int32_t rssi) const {
   // Convert RSSI to signal bars representation
   if (rssi >= -50) {
-    return "||||";  // Excellent
+    return "||||"; // Excellent
   }
   if (rssi >= -60) {
-    return "||| ";  // Good
+    return "||| "; // Good
   }
   if (rssi >= -70) {
-    return "||  ";  // Fair
+    return "||  "; // Fair
   }
   if (rssi >= -80) {
-    return "|   ";  // Weak
+    return "|   "; // Weak
   }
-  return "    ";  // Very weak
+  return "    "; // Very weak
 }
 
 void WifiSelectionActivity::displayTaskLoop() {
@@ -482,27 +500,27 @@ void WifiSelectionActivity::render() const {
   renderer.clearScreen();
 
   switch (state) {
-    case WifiSelectionState::SCANNING:
-      renderConnecting();  // Reuse connecting screen with different message
-      break;
-    case WifiSelectionState::NETWORK_LIST:
-      renderNetworkList();
-      break;
-    case WifiSelectionState::CONNECTING:
-      renderConnecting();
-      break;
-    case WifiSelectionState::CONNECTED:
-      renderConnected();
-      break;
-    case WifiSelectionState::SAVE_PROMPT:
-      renderSavePrompt();
-      break;
-    case WifiSelectionState::CONNECTION_FAILED:
-      renderConnectionFailed();
-      break;
-    case WifiSelectionState::FORGET_PROMPT:
-      renderForgetPrompt();
-      break;
+  case WifiSelectionState::SCANNING:
+    renderConnecting(); // Reuse connecting screen with different message
+    break;
+  case WifiSelectionState::NETWORK_LIST:
+    renderNetworkList();
+    break;
+  case WifiSelectionState::CONNECTING:
+    renderConnecting();
+    break;
+  case WifiSelectionState::CONNECTED:
+    renderConnected();
+    break;
+  case WifiSelectionState::SAVE_PROMPT:
+    renderSavePrompt();
+    break;
+  case WifiSelectionState::CONNECTION_FAILED:
+    renderConnectionFailed();
+    break;
+  case WifiSelectionState::FORGET_PROMPT:
+    renderForgetPrompt();
+    break;
   }
 
   renderer.displayBuffer();
@@ -513,14 +531,16 @@ void WifiSelectionActivity::renderNetworkList() const {
   const auto pageHeight = renderer.getScreenHeight();
 
   // Draw header
-  renderer.drawCenteredText(UI_12_FONT_ID, 15, "WiFi Networks", true, EpdFontFamily::BOLD);
+  renderer.drawCenteredText(UI_12_FONT_ID, 15, "Mạng WiFi", true,
+                            EpdFontFamily::BOLD);
 
   if (networks.empty()) {
     // No networks found or scan failed
     const auto height = renderer.getLineHeight(UI_10_FONT_ID);
     const auto top = (pageHeight - height) / 2;
-    renderer.drawCenteredText(UI_10_FONT_ID, top, "No networks found");
-    renderer.drawCenteredText(SMALL_FONT_ID, top + height + 10, "Press OK to scan again");
+    renderer.drawCenteredText(UI_10_FONT_ID, top, "Không tìm thấy mạng");
+    renderer.drawCenteredText(SMALL_FONT_ID, top + height + 10,
+                              "Nhấn OK để quét lại");
   } else {
     // Calculate how many networks we can display
     constexpr int startY = 60;
@@ -535,9 +555,11 @@ void WifiSelectionActivity::renderNetworkList() const {
 
     // Draw networks
     int displayIndex = 0;
-    for (size_t i = scrollOffset; i < networks.size() && displayIndex < maxVisibleNetworks; i++, displayIndex++) {
+    for (size_t i = scrollOffset;
+         i < networks.size() && displayIndex < maxVisibleNetworks;
+         i++, displayIndex++) {
       const int networkY = startY + displayIndex * lineHeight;
-      const auto& network = networks[i];
+      const auto &network = networks[i];
 
       // Draw selection indicator
       if (static_cast<int>(i) == selectedNetworkIndex) {
@@ -553,7 +575,8 @@ void WifiSelectionActivity::renderNetworkList() const {
 
       // Draw signal strength indicator
       std::string signalStr = getSignalStrengthIndicator(network.rssi);
-      renderer.drawText(UI_10_FONT_ID, pageWidth - 90, networkY, signalStr.c_str());
+      renderer.drawText(UI_10_FONT_ID, pageWidth - 90, networkY,
+                        signalStr.c_str());
 
       // Draw saved indicator (checkmark) for networks with saved passwords
       if (network.hasSavedPassword) {
@@ -571,22 +594,26 @@ void WifiSelectionActivity::renderNetworkList() const {
       renderer.drawText(SMALL_FONT_ID, pageWidth - 15, startY - 10, "^");
     }
     if (scrollOffset + maxVisibleNetworks < static_cast<int>(networks.size())) {
-      renderer.drawText(SMALL_FONT_ID, pageWidth - 15, startY + maxVisibleNetworks * lineHeight, "v");
+      renderer.drawText(SMALL_FONT_ID, pageWidth - 15,
+                        startY + maxVisibleNetworks * lineHeight, "v");
     }
 
     // Show network count
     char countStr[32];
-    snprintf(countStr, sizeof(countStr), "%zu networks found", networks.size());
+    snprintf(countStr, sizeof(countStr), "Tìm thấy %zu mạng", networks.size());
     renderer.drawText(SMALL_FONT_ID, 20, pageHeight - 90, countStr);
   }
 
   // Show MAC address above the network count and legend
-  renderer.drawText(SMALL_FONT_ID, 20, pageHeight - 105, cachedMacAddress.c_str());
+  renderer.drawText(SMALL_FONT_ID, 20, pageHeight - 105,
+                    cachedMacAddress.c_str());
 
   // Draw help text
-  renderer.drawText(SMALL_FONT_ID, 20, pageHeight - 75, "* = Encrypted | + = Saved");
-  const auto labels = mappedInput.mapLabels("« Back", "Connect", "", "");
-  renderer.drawButtonHints(UI_10_FONT_ID, labels.btn1, labels.btn2, labels.btn3, labels.btn4);
+  renderer.drawText(SMALL_FONT_ID, 20, pageHeight - 75,
+                    "* = Mã hóa | + = Đã lưu");
+  const auto labels = mappedInput.mapLabels("« Quay lại", "Kết nối", "", "");
+  renderer.drawButtonHints(UI_10_FONT_ID, labels.btn1, labels.btn2, labels.btn3,
+                           labels.btn4);
 }
 
 void WifiSelectionActivity::renderConnecting() const {
@@ -595,11 +622,12 @@ void WifiSelectionActivity::renderConnecting() const {
   const auto top = (pageHeight - height) / 2;
 
   if (state == WifiSelectionState::SCANNING) {
-    renderer.drawCenteredText(UI_10_FONT_ID, top, "Scanning...");
+    renderer.drawCenteredText(UI_10_FONT_ID, top, "Đang quét...");
   } else {
-    renderer.drawCenteredText(UI_12_FONT_ID, top - 40, "Connecting...", true, EpdFontFamily::BOLD);
+    renderer.drawCenteredText(UI_12_FONT_ID, top - 40, "Đang kết nối...", true,
+                              EpdFontFamily::BOLD);
 
-    std::string ssidInfo = "to " + selectedSSID;
+    std::string ssidInfo = "đến " + selectedSSID;
     if (ssidInfo.length() > 25) {
       ssidInfo.replace(22, ssidInfo.length() - 22, "...");
     }
@@ -612,20 +640,22 @@ void WifiSelectionActivity::renderConnected() const {
   const auto height = renderer.getLineHeight(UI_10_FONT_ID);
   const auto top = (pageHeight - height * 4) / 2;
 
-  renderer.drawCenteredText(UI_12_FONT_ID, top - 30, "Connected!", true, EpdFontFamily::BOLD);
+  renderer.drawCenteredText(UI_12_FONT_ID, top - 30, "Đã kết nối!", true,
+                            EpdFontFamily::BOLD);
 
-  std::string ssidInfo = "Network: " + selectedSSID;
+  std::string ssidInfo = "Mạng: " + selectedSSID;
   if (ssidInfo.length() > 28) {
     ssidInfo.replace(25, ssidInfo.length() - 25, "...");
   }
   renderer.drawCenteredText(UI_10_FONT_ID, top + 10, ssidInfo.c_str());
 
-  const std::string ipInfo = "IP Address: " + connectedIP;
+  const std::string ipInfo = "Địa chỉ IP: " + connectedIP;
   renderer.drawCenteredText(UI_10_FONT_ID, top + 40, ipInfo.c_str());
 
   // Use centralized button hints
-  const auto labels = mappedInput.mapLabels("", "Continue", "", "");
-  renderer.drawButtonHints(UI_10_FONT_ID, labels.btn1, labels.btn2, labels.btn3, labels.btn4);
+  const auto labels = mappedInput.mapLabels("", "Tiếp tục", "", "");
+  renderer.drawButtonHints(UI_10_FONT_ID, labels.btn1, labels.btn2, labels.btn3,
+                           labels.btn4);
 }
 
 void WifiSelectionActivity::renderSavePrompt() const {
@@ -634,15 +664,17 @@ void WifiSelectionActivity::renderSavePrompt() const {
   const auto height = renderer.getLineHeight(UI_10_FONT_ID);
   const auto top = (pageHeight - height * 3) / 2;
 
-  renderer.drawCenteredText(UI_12_FONT_ID, top - 40, "Connected!", true, EpdFontFamily::BOLD);
+  renderer.drawCenteredText(UI_12_FONT_ID, top - 40, "Đã kết nối!", true,
+                            EpdFontFamily::BOLD);
 
-  std::string ssidInfo = "Network: " + selectedSSID;
+  std::string ssidInfo = "Mạng: " + selectedSSID;
   if (ssidInfo.length() > 28) {
     ssidInfo.replace(25, ssidInfo.length() - 25, "...");
   }
   renderer.drawCenteredText(UI_10_FONT_ID, top, ssidInfo.c_str());
 
-  renderer.drawCenteredText(UI_10_FONT_ID, top + 40, "Save password for next time?");
+  renderer.drawCenteredText(UI_10_FONT_ID, top + 40,
+                            "Lưu mật khẩu cho lần sau?");
 
   // Draw Yes/No buttons
   const int buttonY = top + 80;
@@ -653,21 +685,24 @@ void WifiSelectionActivity::renderSavePrompt() const {
 
   // Draw "Yes" button
   if (savePromptSelection == 0) {
-    renderer.drawText(UI_10_FONT_ID, startX, buttonY, "[Yes]");
+    renderer.drawText(UI_10_FONT_ID, startX, buttonY, "[Có]");
   } else {
-    renderer.drawText(UI_10_FONT_ID, startX + 4, buttonY, "Yes");
+    renderer.drawText(UI_10_FONT_ID, startX + 4, buttonY, "Có");
   }
 
   // Draw "No" button
   if (savePromptSelection == 1) {
-    renderer.drawText(UI_10_FONT_ID, startX + buttonWidth + buttonSpacing, buttonY, "[No]");
+    renderer.drawText(UI_10_FONT_ID, startX + buttonWidth + buttonSpacing,
+                      buttonY, "[Không]");
   } else {
-    renderer.drawText(UI_10_FONT_ID, startX + buttonWidth + buttonSpacing + 4, buttonY, "No");
+    renderer.drawText(UI_10_FONT_ID, startX + buttonWidth + buttonSpacing + 4,
+                      buttonY, "Không");
   }
 
   // Use centralized button hints
-  const auto labels = mappedInput.mapLabels("« Skip", "Select", "Left", "Right");
-  renderer.drawButtonHints(UI_10_FONT_ID, labels.btn1, labels.btn2, labels.btn3, labels.btn4);
+  const auto labels = mappedInput.mapLabels("« Bỏ qua", "Chọn", "Trái", "Phải");
+  renderer.drawButtonHints(UI_10_FONT_ID, labels.btn1, labels.btn2, labels.btn3,
+                           labels.btn4);
 }
 
 void WifiSelectionActivity::renderConnectionFailed() const {
@@ -675,12 +710,14 @@ void WifiSelectionActivity::renderConnectionFailed() const {
   const auto height = renderer.getLineHeight(UI_10_FONT_ID);
   const auto top = (pageHeight - height * 2) / 2;
 
-  renderer.drawCenteredText(UI_12_FONT_ID, top - 20, "Connection Failed", true, EpdFontFamily::BOLD);
+  renderer.drawCenteredText(UI_12_FONT_ID, top - 20, "Kết nối thất bại", true,
+                            EpdFontFamily::BOLD);
   renderer.drawCenteredText(UI_10_FONT_ID, top + 20, connectionError.c_str());
 
   // Use centralized button hints
-  const auto labels = mappedInput.mapLabels("« Back", "Continue", "", "");
-  renderer.drawButtonHints(UI_10_FONT_ID, labels.btn1, labels.btn2, labels.btn3, labels.btn4);
+  const auto labels = mappedInput.mapLabels("« Quay lại", "Tiếp tục", "", "");
+  renderer.drawButtonHints(UI_10_FONT_ID, labels.btn1, labels.btn2, labels.btn3,
+                           labels.btn4);
 }
 
 void WifiSelectionActivity::renderForgetPrompt() const {
@@ -689,15 +726,16 @@ void WifiSelectionActivity::renderForgetPrompt() const {
   const auto height = renderer.getLineHeight(UI_10_FONT_ID);
   const auto top = (pageHeight - height * 3) / 2;
 
-  renderer.drawCenteredText(UI_12_FONT_ID, top - 40, "Forget Network?", true, EpdFontFamily::BOLD);
+  renderer.drawCenteredText(UI_12_FONT_ID, top - 40, "Quên mạng?", true,
+                            EpdFontFamily::BOLD);
 
-  std::string ssidInfo = "Network: " + selectedSSID;
+  std::string ssidInfo = "Mạng: " + selectedSSID;
   if (ssidInfo.length() > 28) {
     ssidInfo.replace(25, ssidInfo.length() - 25, "...");
   }
   renderer.drawCenteredText(UI_10_FONT_ID, top, ssidInfo.c_str());
 
-  renderer.drawCenteredText(UI_10_FONT_ID, top + 40, "Remove saved password?");
+  renderer.drawCenteredText(UI_10_FONT_ID, top + 40, "Xóa mật khẩu đã lưu?");
 
   // Draw Cancel/Forget network buttons
   const int buttonY = top + 80;
@@ -708,19 +746,23 @@ void WifiSelectionActivity::renderForgetPrompt() const {
 
   // Draw "Cancel" button
   if (forgetPromptSelection == 0) {
-    renderer.drawText(UI_10_FONT_ID, startX, buttonY, "[Cancel]");
+    renderer.drawText(UI_10_FONT_ID, startX, buttonY, "[Hủy]");
   } else {
-    renderer.drawText(UI_10_FONT_ID, startX + 4, buttonY, "Cancel");
+    renderer.drawText(UI_10_FONT_ID, startX + 4, buttonY, "Hủy");
   }
 
   // Draw "Forget network" button
   if (forgetPromptSelection == 1) {
-    renderer.drawText(UI_10_FONT_ID, startX + buttonWidth + buttonSpacing, buttonY, "[Forget network]");
+    renderer.drawText(UI_10_FONT_ID, startX + buttonWidth + buttonSpacing,
+                      buttonY, "[Quên mạng]");
   } else {
-    renderer.drawText(UI_10_FONT_ID, startX + buttonWidth + buttonSpacing + 4, buttonY, "Forget network");
+    renderer.drawText(UI_10_FONT_ID, startX + buttonWidth + buttonSpacing + 4,
+                      buttonY, "Quên mạng");
   }
 
   // Use centralized button hints
-  const auto labels = mappedInput.mapLabels("« Back", "Select", "Left", "Right");
-  renderer.drawButtonHints(UI_10_FONT_ID, labels.btn1, labels.btn2, labels.btn3, labels.btn4);
+  const auto labels =
+      mappedInput.mapLabels("« Quay lại", "Chọn", "Trái", "Phải");
+  renderer.drawButtonHints(UI_10_FONT_ID, labels.btn1, labels.btn2, labels.btn3,
+                           labels.btn4);
 }
