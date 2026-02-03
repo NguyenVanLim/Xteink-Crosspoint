@@ -9,7 +9,7 @@
 #include "fontIds.h"
 
 const char *SettingsActivity::categoryNames[categoryCount] = {
-    "Hiển thị", "Trình đọc", "Điều khiển", "Hệ thống"};
+    "Hiển thị", "Trình đọc", "Điều khiển", "Hệ thống", "Kết nối", "Nâng cao"};
 
 namespace {
 constexpr int displaySettingsCount = 6;
@@ -69,8 +69,17 @@ const SettingInfo systemSettings[systemSettingsCount] = {
     SettingInfo::Enum("Thời gian chờ", &CrossPointSettings::sleepTimeout,
                       {"1 phút", "5 phút", "10 phút", "15 phút", "30 phút"}),
     SettingInfo::Action("Đồng bộ KOReader"), SettingInfo::Action("Duyệt OPDS"),
-    SettingInfo::Action("Xóa bộ nhớ đệm"),
+    SettingInfo::Action("Đặt lại thiết bị"),
     SettingInfo::Action("Kiểm tra cập nhật")};
+
+constexpr int connectivitySettingsCount = 2;
+const SettingInfo connectivitySettings[connectivitySettingsCount] = {
+    SettingInfo::Action("Kết nối WiFi"),
+    SettingInfo::Action("Vị trí thời tiết")};
+
+constexpr int advancedSettingsCount = 1;
+const SettingInfo advancedSettings[advancedSettingsCount] = {
+    SettingInfo::Toggle("Tải hình ảnh", &CrossPointSettings::loadImages)};
 } // namespace
 
 void SettingsActivity::taskTrampoline(void *param) {
@@ -173,6 +182,14 @@ void SettingsActivity::enterCategory(int categoryIndex) {
   case 3: // System
     settingsList = systemSettings;
     settingsCount = systemSettingsCount;
+    break;
+  case 4: // Connectivity
+    settingsList = connectivitySettings;
+    settingsCount = connectivitySettingsCount;
+    break;
+  case 5: // Advanced
+    settingsList = advancedSettings;
+    settingsCount = advancedSettingsCount;
     break;
   }
 

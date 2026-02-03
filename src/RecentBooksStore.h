@@ -41,6 +41,9 @@ public:
   // Get the count of recent books
   int getCount() const { return static_cast<int>(recentBooks.size()); }
 
+  // Clear all recent books
+  void clear() { recentBooks.clear(); }
+
   bool saveToFile() const;
 
   bool loadFromFile();

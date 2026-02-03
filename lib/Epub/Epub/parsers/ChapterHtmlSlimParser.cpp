@@ -135,6 +135,19 @@ void XMLCALL ChapterHtmlSlimParser::startElement(void *userData,
       return;
     }
 
+    // Check if image loading is enabled
+    if (self->epub && !self->epub->isImageLoadingEnabled()) {
+      // Fallback to alt text immediately
+      self->startNewTextBlock(TextBlock::CENTER_ALIGN);
+      self->italicUntilDepth = std::min(self->italicUntilDepth, self->depth);
+      self->depth += 1;
+      // If alt is empty or default, maybe show nothing or just [Image]
+      // Using existing alt logic which defaults to "[Image]" if empty
+      self->characterData(userData, alt.c_str(), alt.length());
+      self->skipUntilDepth = self->depth - 1;
+      return;
+    }
+
     const std::string normalizedSrc =
         self->normalizePath(src, self->originalPath);
     const std::string bmpCachePath =

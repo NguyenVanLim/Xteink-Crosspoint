@@ -21,10 +21,15 @@
 #include "activities/home/HomeActivity.h"
 #include "activities/home/MyLibraryActivity.h"
 #include "activities/network/CrossPointWebServerActivity.h"
+#include "activities/network/WifiSelectionActivity.h"
 #include "activities/reader/ReaderActivity.h"
 #include "activities/settings/SettingsActivity.h"
 #include "activities/util/FullScreenMessageActivity.h"
+#include "activities/util/KeyboardEntryActivity.h"
+#include "activities/weather/WeatherSelectionActivity.h"
 #include "fontIds.h"
+#include "services/WeatherService.h"
+#include "services/WifiService.h"
 
 #define SPI_FQ 40000000
 // Display SPI pins (custom pins for XteinkX4, not hardware SPI defaults)
@@ -263,6 +268,13 @@ void onContinueReading() {
   onGoToReader(APP_STATE.openEpubPath, MyLibraryActivity::Tab::Recent);
 }
 
+void onGoToRecent() {
+  exitActivity();
+  enterNewActivity(new MyLibraryActivity(renderer, mappedInputManager, onGoHome,
+                                         onGoToReader,
+                                         MyLibraryActivity::Tab::Recent));
+}
+
 void onGoToFileTransfer() {
   exitActivity();
   enterNewActivity(
@@ -299,6 +311,23 @@ void onGoToMyLibraryWithTab(const std::string &path,
                                          onGoToReader, tab, path));
 }
 
+void onGoToWifiSettings() {
+  exitActivity();
+  enterNewActivity(new WifiSelectionActivity(
+      renderer, mappedInputManager, [=](bool connected) {
+        if (connected) {
+          WeatherService::getInstance().refresh();
+        }
+        onGoHome();
+      }));
+}
+
+void onGoToWeatherSettings() {
+  exitActivity();
+  enterNewActivity(
+      new WeatherSelectionActivity(renderer, mappedInputManager, onGoHome));
+}
+
 void onGoToBrowser() {
   exitActivity();
   enterNewActivity(
@@ -308,8 +337,9 @@ void onGoToBrowser() {
 void onGoHome() {
   exitActivity();
   enterNewActivity(new HomeActivity(
-      renderer, mappedInputManager, onContinueReading, onGoToBooks, onGoToFiles,
-      onGoToSettings, onGoToFileTransfer, onGoToBrowser));
+      renderer, mappedInputManager, onContinueReading, onGoToRecent,
+      onGoToBooks, onGoToFiles, onGoToSettings, onGoToFileTransfer,
+      onGoToBrowser, onGoToWifiSettings, onGoToWeatherSettings));
 }
 
 void setupDisplayAndFonts() {
@@ -407,6 +437,10 @@ void setup() {
 
   APP_STATE.loadFromFile();
   RECENT_BOOKS.loadFromFile();
+
+  // Initialize WiFi service (but don't auto-connect to prevent boot hang)
+  WifiService::getInstance().begin();
+  // WifiService::getInstance().autoConnect(); // DISABLED - causes boot hang
 
   if (APP_STATE.openEpubPath.empty()) {
     onGoHome();

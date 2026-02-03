@@ -3,20 +3,31 @@
 #include <iosfwd>
 
 class CrossPointSettings {
- private:
+private:
   // Private constructor for singleton
   CrossPointSettings() = default;
 
   // Static instance
   static CrossPointSettings instance;
 
- public:
+public:
   // Delete copy constructor and assignment
-  CrossPointSettings(const CrossPointSettings&) = delete;
-  CrossPointSettings& operator=(const CrossPointSettings&) = delete;
+  CrossPointSettings(const CrossPointSettings &) = delete;
+  CrossPointSettings &operator=(const CrossPointSettings &) = delete;
 
-  enum SLEEP_SCREEN_MODE { DARK = 0, LIGHT = 1, CUSTOM = 2, COVER = 3, BLANK = 4, SLEEP_SCREEN_MODE_COUNT };
-  enum SLEEP_SCREEN_COVER_MODE { FIT = 0, CROP = 1, SLEEP_SCREEN_COVER_MODE_COUNT };
+  enum SLEEP_SCREEN_MODE {
+    DARK = 0,
+    LIGHT = 1,
+    CUSTOM = 2,
+    COVER = 3,
+    BLANK = 4,
+    SLEEP_SCREEN_MODE_COUNT
+  };
+  enum SLEEP_SCREEN_COVER_MODE {
+    FIT = 0,
+    CROP = 1,
+    SLEEP_SCREEN_COVER_MODE_COUNT
+  };
   enum SLEEP_SCREEN_COVER_FILTER {
     NO_FILTER = 0,
     BLACK_AND_WHITE = 1,
@@ -35,10 +46,11 @@ class CrossPointSettings {
   };
 
   enum ORIENTATION {
-    PORTRAIT = 0,       // 480x800 logical coordinates (current default)
-    LANDSCAPE_CW = 1,   // 800x480 logical coordinates, rotated 180° (swap top/bottom)
-    INVERTED = 2,       // 480x800 logical coordinates, inverted
-    LANDSCAPE_CCW = 3,  // 800x480 logical coordinates, native panel orientation
+    PORTRAIT = 0, // 480x800 logical coordinates (current default)
+    LANDSCAPE_CW =
+        1,        // 800x480 logical coordinates, rotated 180° (swap top/bottom)
+    INVERTED = 2, // 480x800 logical coordinates, inverted
+    LANDSCAPE_CCW = 3, // 800x480 logical coordinates, native panel orientation
     ORIENTATION_COUNT
   };
 
@@ -56,13 +68,33 @@ class CrossPointSettings {
   // Side button layout options
   // Default: Previous, Next
   // Swapped: Next, Previous
-  enum SIDE_BUTTON_LAYOUT { PREV_NEXT = 0, NEXT_PREV = 1, SIDE_BUTTON_LAYOUT_COUNT };
+  enum SIDE_BUTTON_LAYOUT {
+    PREV_NEXT = 0,
+    NEXT_PREV = 1,
+    SIDE_BUTTON_LAYOUT_COUNT
+  };
 
   // Font family options
-  enum FONT_FAMILY { BOOKERLY = 0, NOTOSANS = 1, OPENDYSLEXIC = 2, FONT_FAMILY_COUNT };
+  enum FONT_FAMILY {
+    BOOKERLY = 0,
+    NOTOSANS = 1,
+    OPENDYSLEXIC = 2,
+    FONT_FAMILY_COUNT
+  };
   // Font size options
-  enum FONT_SIZE { SMALL = 0, MEDIUM = 1, LARGE = 2, EXTRA_LARGE = 3, FONT_SIZE_COUNT };
-  enum LINE_COMPRESSION { TIGHT = 0, NORMAL = 1, WIDE = 2, LINE_COMPRESSION_COUNT };
+  enum FONT_SIZE {
+    SMALL = 0,
+    MEDIUM = 1,
+    LARGE = 2,
+    EXTRA_LARGE = 3,
+    FONT_SIZE_COUNT
+  };
+  enum LINE_COMPRESSION {
+    TIGHT = 0,
+    NORMAL = 1,
+    WIDE = 2,
+    LINE_COMPRESSION_COUNT
+  };
   enum PARAGRAPH_ALIGNMENT {
     JUSTIFIED = 0,
     LEFT_ALIGN = 1,
@@ -92,10 +124,20 @@ class CrossPointSettings {
   };
 
   // Short power button press actions
-  enum SHORT_PWRBTN { IGNORE = 0, SLEEP = 1, PAGE_TURN = 2, SHORT_PWRBTN_COUNT };
+  enum SHORT_PWRBTN {
+    IGNORE = 0,
+    SLEEP = 1,
+    PAGE_TURN = 2,
+    SHORT_PWRBTN_COUNT
+  };
 
   // Hide battery percentage
-  enum HIDE_BATTERY_PERCENTAGE { HIDE_NEVER = 0, HIDE_READER = 1, HIDE_ALWAYS = 2, HIDE_BATTERY_PERCENTAGE_COUNT };
+  enum HIDE_BATTERY_PERCENTAGE {
+    HIDE_NEVER = 0,
+    HIDE_READER = 1,
+    HIDE_ALWAYS = 2,
+    HIDE_BATTERY_PERCENTAGE_COUNT
+  };
 
   // Sleep screen settings
   uint8_t sleepScreen = DARK;
@@ -111,7 +153,8 @@ class CrossPointSettings {
   // Short power button click behaviour
   uint8_t shortPwrBtn = IGNORE;
   // EPUB reading orientation settings
-  // 0 = portrait (default), 1 = landscape clockwise, 2 = inverted, 3 = landscape counter-clockwise
+  // 0 = portrait (default), 1 = landscape clockwise, 2 = inverted, 3 =
+  // landscape counter-clockwise
   uint8_t orientation = PORTRAIT;
   // Button layouts
   uint8_t frontButtonLayout = BACK_CONFIRM_LEFT_RIGHT;
@@ -137,11 +180,16 @@ class CrossPointSettings {
   uint8_t hideBatteryPercentage = HIDE_NEVER;
   // Long-press chapter skip on side buttons
   uint8_t longPressChapterSkip = 1;
+  // Weather settings (city index: 0-62 for 63 Vietnamese provinces)
+  uint8_t weatherCityIndex = 23; // Default to Ha Noi (index 23)
+  char lastWeatherText[64] = "";
+  // Image loading setting
+  uint8_t loadImages = 1; // Default to On (1)
 
   ~CrossPointSettings() = default;
 
   // Get singleton instance
-  static CrossPointSettings& getInstance() { return instance; }
+  static CrossPointSettings &getInstance() { return instance; }
 
   uint16_t getPowerButtonDuration() const {
     return (shortPwrBtn == CrossPointSettings::SHORT_PWRBTN::SLEEP) ? 10 : 400;

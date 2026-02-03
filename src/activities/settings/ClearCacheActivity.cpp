@@ -5,10 +5,11 @@
 #include <SDCardManager.h>
 
 #include "MappedInputManager.h"
+#include "RecentBooksStore.h"
 #include "fontIds.h"
 
-void ClearCacheActivity::taskTrampoline(void* param) {
-  auto* self = static_cast<ClearCacheActivity*>(param);
+void ClearCacheActivity::taskTrampoline(void *param) {
+  auto *self = static_cast<ClearCacheActivity *>(param);
   self->displayTaskLoop();
 }
 
@@ -20,17 +21,18 @@ void ClearCacheActivity::onEnter() {
   updateRequired = true;
 
   xTaskCreate(&ClearCacheActivity::taskTrampoline, "ClearCacheActivityTask",
-              4096,               // Stack size
-              this,               // Parameters
-              1,                  // Priority
-              &displayTaskHandle  // Task handle
+              4096,              // Stack size
+              this,              // Parameters
+              1,                 // Priority
+              &displayTaskHandle // Task handle
   );
 }
 
 void ClearCacheActivity::onExit() {
   ActivityWithSubactivity::onExit();
 
-  // Wait until not rendering to delete task to avoid killing mid-instruction to EPD
+  // Wait until not rendering to delete task to avoid killing mid-instruction to
+  // EPD
   xSemaphoreTake(renderingMutex, portMAX_DELAY);
   if (displayTaskHandle) {
     vTaskDelete(displayTaskHandle);
@@ -56,103 +58,108 @@ void ClearCacheActivity::render() {
   const auto pageHeight = renderer.getScreenHeight();
 
   renderer.clearScreen();
-  renderer.drawCenteredText(UI_12_FONT_ID, 15, "Clear Cache", true, EpdFontFamily::BOLD);
+  renderer.drawCenteredText(UI_12_FONT_ID, 15, "Đặt lại thiết bị", true,
+                            EpdFontFamily::BOLD);
 
   if (state == WARNING) {
-    renderer.drawCenteredText(UI_10_FONT_ID, pageHeight / 2 - 60, "This will clear all cached book data.", true);
-    renderer.drawCenteredText(UI_10_FONT_ID, pageHeight / 2 - 30, "All reading progress will be lost!", true,
+    renderer.drawCenteredText(UI_10_FONT_ID, pageHeight / 2 - 60,
+                              "Toàn bộ dữ liệu đệm và lịch sử đọc", true);
+    renderer.drawCenteredText(UI_10_FONT_ID, pageHeight / 2 - 30,
+                              "sẽ bị xóa sạch hoàn toàn!", true,
                               EpdFontFamily::BOLD);
-    renderer.drawCenteredText(UI_10_FONT_ID, pageHeight / 2 + 10, "Books will need to be re-indexed", true);
-    renderer.drawCenteredText(UI_10_FONT_ID, pageHeight / 2 + 30, "when opened again.", true);
+    renderer.drawCenteredText(UI_10_FONT_ID, pageHeight / 2 + 10,
+                              "Thiết bị sẽ khởi động lại", true);
+    renderer.drawCenteredText(UI_10_FONT_ID, pageHeight / 2 + 30,
+                              "sau khi hoàn tất.", true);
 
-    const auto labels = mappedInput.mapLabels("« Cancel", "Clear", "", "");
-    renderer.drawButtonHints(UI_10_FONT_ID, labels.btn1, labels.btn2, labels.btn3, labels.btn4);
+    const auto labels = mappedInput.mapLabels("« Hủy", "Đặt lại", "", "");
+    renderer.drawButtonHints(UI_10_FONT_ID, labels.btn1, labels.btn2,
+                             labels.btn3, labels.btn4);
     renderer.displayBuffer();
     return;
   }
 
   if (state == CLEARING) {
-    renderer.drawCenteredText(UI_10_FONT_ID, pageHeight / 2, "Clearing cache...", true, EpdFontFamily::BOLD);
+    renderer.drawCenteredText(UI_10_FONT_ID, pageHeight / 2, "Đang dọn dẹp...",
+                              true, EpdFontFamily::BOLD);
     renderer.displayBuffer();
     return;
   }
 
   if (state == SUCCESS) {
-    renderer.drawCenteredText(UI_10_FONT_ID, pageHeight / 2 - 20, "Cache Cleared", true, EpdFontFamily::BOLD);
+    renderer.drawCenteredText(UI_10_FONT_ID, pageHeight / 2 - 20,
+                              "Cache Cleared", true, EpdFontFamily::BOLD);
     String resultText = String(clearedCount) + " items removed";
     if (failedCount > 0) {
       resultText += ", " + String(failedCount) + " failed";
     }
-    renderer.drawCenteredText(UI_10_FONT_ID, pageHeight / 2 + 10, resultText.c_str());
+    renderer.drawCenteredText(UI_10_FONT_ID, pageHeight / 2 + 10,
+                              resultText.c_str());
 
     const auto labels = mappedInput.mapLabels("« Back", "", "", "");
-    renderer.drawButtonHints(UI_10_FONT_ID, labels.btn1, labels.btn2, labels.btn3, labels.btn4);
+    renderer.drawButtonHints(UI_10_FONT_ID, labels.btn1, labels.btn2,
+                             labels.btn3, labels.btn4);
     renderer.displayBuffer();
     return;
   }
 
   if (state == FAILED) {
-    renderer.drawCenteredText(UI_10_FONT_ID, pageHeight / 2 - 20, "Failed to clear cache", true, EpdFontFamily::BOLD);
-    renderer.drawCenteredText(UI_10_FONT_ID, pageHeight / 2 + 10, "Check serial output for details");
+    renderer.drawCenteredText(UI_10_FONT_ID, pageHeight / 2 - 20,
+                              "Failed to clear cache", true,
+                              EpdFontFamily::BOLD);
+    renderer.drawCenteredText(UI_10_FONT_ID, pageHeight / 2 + 10,
+                              "Check serial output for details");
 
     const auto labels = mappedInput.mapLabels("« Back", "", "", "");
-    renderer.drawButtonHints(UI_10_FONT_ID, labels.btn1, labels.btn2, labels.btn3, labels.btn4);
+    renderer.drawButtonHints(UI_10_FONT_ID, labels.btn1, labels.btn2,
+                             labels.btn3, labels.btn4);
     renderer.displayBuffer();
     return;
   }
 }
 
 void ClearCacheActivity::clearCache() {
-  Serial.printf("[%lu] [CLEAR_CACHE] Clearing cache...\n", millis());
+  Serial.printf("[%lu] [FACTORY_RESET] Performing full reset...\n", millis());
 
-  // Open .crosspoint directory
-  auto root = SdMan.open("/.crosspoint");
-  if (!root || !root.isDirectory()) {
-    Serial.printf("[%lu] [CLEAR_CACHE] Failed to open cache directory\n", millis());
-    if (root) root.close();
-    state = FAILED;
-    updateRequired = true;
-    return;
-  }
+  char filename[128];
 
-  clearedCount = 0;
-  failedCount = 0;
-  char name[128];
-
-  // Iterate through all entries in the directory
-  for (auto file = root.openNextFile(); file; file = root.openNextFile()) {
-    file.getName(name, sizeof(name));
-    String itemName(name);
-
-    // Only delete directories starting with epub_ or xtc_
-    if (file.isDirectory() && (itemName.startsWith("epub_") || itemName.startsWith("xtc_"))) {
-      String fullPath = "/.crosspoint/" + itemName;
-      Serial.printf("[%lu] [CLEAR_CACHE] Removing cache: %s\n", millis(), fullPath.c_str());
-
-      file.close();  // Close before attempting to delete
-
-      if (SdMan.removeDir(fullPath.c_str())) {
-        clearedCount++;
-      } else {
-        Serial.printf("[%lu] [CLEAR_CACHE] Failed to remove: %s\n", millis(), fullPath.c_str());
-        failedCount++;
-      }
-    } else {
+  // 1. Clear /cover
+  if (SdMan.exists("/cover")) {
+    auto root = SdMan.open("/cover");
+    while (auto file = root.openNextFile()) {
+      file.getName(filename, sizeof(filename));
+      SdMan.remove((std::string("/cover/") + filename).c_str());
       file.close();
     }
+    root.close();
   }
-  root.close();
 
-  Serial.printf("[%lu] [CLEAR_CACHE] Cache cleared: %d removed, %d failed\n", millis(), clearedCount, failedCount);
+  // 2. Clear /.crosspoint
+  if (SdMan.exists("/.crosspoint")) {
+    auto root = SdMan.open("/.crosspoint");
+    while (auto file = root.openNextFile()) {
+      file.getName(filename, sizeof(filename));
+      SdMan.remove((std::string("/.crosspoint/") + filename).c_str());
+      file.close();
+    }
+    root.close();
+  }
 
-  state = SUCCESS;
-  updateRequired = true;
+  // 3. Clear Recent Books
+  RECENT_BOOKS.clear();
+  RECENT_BOOKS.saveToFile();
+
+  Serial.printf("[%lu] [FACTORY_RESET] Reset complete. Rebooting...\n",
+                millis());
+  ESP.restart();
 }
 
 void ClearCacheActivity::loop() {
   if (state == WARNING) {
     if (mappedInput.wasPressed(MappedInputManager::Button::Confirm)) {
-      Serial.printf("[%lu] [CLEAR_CACHE] User confirmed, starting cache clear\n", millis());
+      Serial.printf(
+          "[%lu] [CLEAR_CACHE] User confirmed, starting cache clear\n",
+          millis());
       xSemaphoreTake(renderingMutex, portMAX_DELAY);
       state = CLEARING;
       xSemaphoreGive(renderingMutex);

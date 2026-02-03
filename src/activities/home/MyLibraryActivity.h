@@ -18,6 +18,9 @@ private:
     std::string path;
     std::string title;
     std::string coverPath; // Path to cached BMP
+    bool coverChecked = false;
+    bool hasCover = false;
+    bool checked = false; // Persistent "no cover" check
   };
 
   TaskHandle_t displayTaskHandle = nullptr;
@@ -30,6 +33,10 @@ private:
   Tab currentTab = Tab::Books;
   int selectorIndex = 0;
   bool updateRequired = false;
+
+  mutable int lastRenderedSelectorIndex = -1;
+  mutable int lastRenderedPage = -1;
+  mutable bool fullRedrawRequired = true;
 
   // Recent tab state
   std::vector<std::string> bookTitles; // Display titles for each book

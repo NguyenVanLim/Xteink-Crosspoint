@@ -56,6 +56,7 @@ void EpubReaderActivity::onEnter() {
   renderingMutex = xSemaphoreCreateMutex();
 
   epub->setupCacheDir();
+  epub->setImageLoadingEnabled(SETTINGS.loadImages);
 
   FsFile f;
   if (SdMan.openFileForRead("ERS", epub->getCachePath() + "/progress.bin", f)) {
